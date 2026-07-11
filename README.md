@@ -22,7 +22,7 @@ browser push notification to anyone subscribed.
 
 ## Deployment (production)
 
-The app is deployed to Vercel at **[your project's `.vercel.app` URL — fill in once deployed]**.
+The app is deployed to Vercel at **https://strike-alert.vercel.app**.
 Three things had to be configured in Vercel/GitHub for it to run unattended:
 
 1. **Postgres database** — Vercel project → Storage tab → create a Postgres database
@@ -38,6 +38,17 @@ Three things had to be configured in Vercel/GitHub for it to run unattended:
    - `POLL_URL` = your deployed URL (e.g. `https://strike-alert.vercel.app`, no trailing slash)
 
 Once all three are set, redeploy (Vercel redeploys automatically on every push to `main`).
+
+### Gotchas hit during initial setup (in case this project is ever reimported)
+
+- **Framework Preset must be "Next.js"**, not "Other" or "Node.js" — Vercel's import
+  screen didn't auto-detect it correctly the first time. Wrong preset builds
+  "successfully" but every route 404s. Check Settings → General → Build and
+  Deployment → Framework Preset.
+- **Deployment Protection must be off** (Settings → Deployment Protection → Disabled).
+  It defaults to gating every URL behind a Vercel login, which silently breaks both
+  phone access and the GitHub Actions poller (they get redirected to
+  `vercel.com/sso-api` instead of reaching the app).
 
 ## Using it from your phone
 
