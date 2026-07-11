@@ -31,7 +31,7 @@ export async function pollAllSources(): Promise<PollResult> {
     }
   });
 
-  const newEvents = insertNewEvents(allEvents);
+  const newEvents = await insertNewEvents(allEvents);
   await notifySubscribers(newEvents);
 
   return { fetched: allEvents.length, new: newEvents.length, errors };

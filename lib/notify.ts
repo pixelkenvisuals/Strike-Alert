@@ -38,7 +38,7 @@ export async function notifySubscribers(events: StrikeEvent[]): Promise<void> {
   if (events.length === 0) return;
   if (!ensureConfigured()) return;
 
-  const subscriptions = getAllSubscriptions();
+  const subscriptions = await getAllSubscriptions();
   if (subscriptions.length === 0) return;
 
   for (const event of events) {
@@ -54,7 +54,7 @@ export async function notifySubscribers(events: StrikeEvent[]): Promise<void> {
       } catch (err) {
         const statusCode = (err as { statusCode?: number }).statusCode;
         if (statusCode === 404 || statusCode === 410) {
-          removeSubscription(sub.endpoint);
+          await removeSubscription(sub.endpoint);
         } else {
           console.error("[notify] Failed to send push notification:", err);
         }

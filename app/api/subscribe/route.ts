@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing subscription endpoint" }, { status: 400 });
   }
 
-  saveSubscription(JSON.stringify(subscription), subscription.endpoint);
+  await saveSubscription(JSON.stringify(subscription), subscription.endpoint);
   return NextResponse.json({ ok: true });
 }
 
@@ -26,6 +26,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Missing endpoint" }, { status: 400 });
   }
 
-  removeSubscription(endpoint);
+  await removeSubscription(endpoint);
   return NextResponse.json({ ok: true });
 }

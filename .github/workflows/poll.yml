@@ -1,0 +1,18 @@
+name: Poll strike sources
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit the deployed poll endpoint
+        run: |
+          if [ -z "${{ secrets.POLL_URL }}" ]; then
+            echo "POLL_URL secret is not set — add it in this repo's Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          curl -sf "${{ secrets.POLL_URL }}/api/cron/poll"

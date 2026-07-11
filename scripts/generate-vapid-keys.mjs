@@ -5,11 +5,7 @@ import path from "node:path";
 const keys = webpush.generateVAPIDKeys();
 const envPath = path.join(process.cwd(), ".env.local");
 
-const lines = [
-  `VAPID_PUBLIC_KEY=${keys.publicKey}`,
-  `VAPID_PRIVATE_KEY=${keys.privateKey}`,
-  `NEXT_PUBLIC_VAPID_PUBLIC_KEY=${keys.publicKey}`,
-];
+const lines = [`VAPID_PUBLIC_KEY=${keys.publicKey}`, `VAPID_PRIVATE_KEY=${keys.privateKey}`];
 
 if (fs.existsSync(envPath)) {
   const existing = fs.readFileSync(envPath, "utf-8");

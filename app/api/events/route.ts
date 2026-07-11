@@ -4,5 +4,5 @@ import { getRecentEvents } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json({ events: getRecentEvents() });
+  return NextResponse.json({ events: await getRecentEvents() });
 }
