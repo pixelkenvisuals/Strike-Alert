@@ -10,7 +10,8 @@ const AIRPORT_KEYWORD_PATTERN = /\b(brussels airport|zaventem|brucargo)\b/i;
  */
 export async function fetchAirportEvents(): Promise<StrikeEvent[]> {
   const events = await scanNewsFeeds(
-    (text) => AIRPORT_KEYWORD_PATTERN.test(text) && matchesStrikeKeywords(text)
+    (text) => AIRPORT_KEYWORD_PATTERN.test(text) && matchesStrikeKeywords(text),
+    "strike"
   );
 
   return events.map((event) => ({

@@ -1,24 +1,36 @@
 # Strike Alert Belgium
 
-Live strike tracking for STIB/MIVB, NMBS/SNCB, and Brussels Airport, with browser push
-notifications and a NL/FR/EN dashboard. Deployed to Vercel so it works from your phone
-regardless of whether your PC is on.
+Live strike and construction/roadwork tracking for STIB/MIVB, NMBS/SNCB, and Brussels
+Airport, with browser push notifications and a NL/FR/EN dashboard. Deployed to Vercel
+so it works from your phone regardless of whether your PC is on.
 
 ## How it works
 
 - **NMBS/SNCB** — [iRail](https://docs.irail.be) `/disturbances` API (public, no key).
+  Also tags scheduled engineering works separately (`type: "planned"`) from unplanned
+  disturbances, which is what feeds the Construction tab for this source.
 - **STIB/MIVB** — the "Travellers Information" JSON API on STIB's own open-data portal,
   [data.belgianmobility.io](https://data.belgianmobility.io) (public, no key).
 - **Brussels Airport** — no public disruption API exists and the airport's own site
   blocks automated requests, so this is covered via keyword-filtered scans of Belgian
-  news RSS feeds (VRT, RTBF, Bruzz) for "Brussels Airport" + strike mentions.
-- All three feeds are filtered down to items that match strike-related keywords
-  (`staking`/`grève`/`strike` and inflections) in `lib/sources/news.ts`'s
-  `matchesStrikeKeywords` — this app deliberately only tracks strikes, not every minor
-  service diversion.
+  news RSS feeds (VRT, RTBF, Bruzz) for "Brussels Airport" + strike mentions. Strikes
+  only — no construction tracking for the airport.
 
-New events are stored in a Postgres database (Vercel Storage, via Neon) and trigger a
-browser push notification to anyone subscribed.
+The dashboard has two tabs/categories:
+- **Strikes** — all three sources, filtered to items matching strike-related keywords
+  (`staking`/`grève`/`strike` and inflections) in `lib/sources/news.ts`'s
+  `matchesStrikeKeywords`.
+- **Construction** — STIB + NMBS only, filtered to planned works/roadwork/diversions
+  (STIB via `Works`/`Travaux`/`Werken` keyword match, NMBS via iRail's `planned` type).
+
+Notifications are a **separate opt-in per category** — enabling construction alerts
+doesn't turn on strike alerts and vice versa. This matters because construction volume
+is much higher than strikes (STIB alone reports 300+ ongoing works messages at any
+time): each poll run sends **one summarized notification per category** (e.g. "12 new
+construction updates") rather than one notification per event, so a busy poll cycle
+doesn't flood anyone's phone.
+
+New events are stored in a Postgres database (Vercel Storage, via Neon).
 
 ## Deployment (production)
 

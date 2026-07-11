@@ -16,12 +16,7 @@ interface IRailResponse {
   disturbance: IRailDisturbance[];
 }
 
-/**
- * iRail's disturbances feed includes every current NMBS issue (weather, crowding,
- * international incidents, etc.), not just strikes. We keep this app's strike-only
- * scope by filtering to entries whose text matches strike keywords in any language.
- */
-export async function fetchNmbsEvents(): Promise<StrikeEvent[]> {
+async function fetchDisturbances(): Promise<IRailDisturbance[]> {
   const url = "https://api.irail.be/disturbances/?format=json&lang=en";
   const res = await fetch(url, {
     headers: { "User-Agent": IRAIL_USER_AGENT },
@@ -33,18 +28,36 @@ export async function fetchNmbsEvents(): Promise<StrikeEvent[]> {
   }
 
   const data = (await res.json()) as IRailResponse;
-  const disturbances = data.disturbance ?? [];
+  return data.disturbance ?? [];
+}
 
+function toEvent(d: IRailDisturbance, category: StrikeEvent["category"]): StrikeEvent {
+  return {
+    externalId: `nmbs-${d.id}`,
+    source: "nmbs",
+    category,
+    title: d.title,
+    description: d.description,
+    link: d.link || null,
+    startsAt: d.timestamp ? new Date(Number(d.timestamp) * 1000).toISOString() : null,
+    language: "en",
+  };
+}
+
+/**
+ * iRail's disturbances feed includes every current NMBS issue (weather, crowding,
+ * international incidents, etc.), not just strikes. We keep this app's strike-only
+ * scope by filtering to entries whose text matches strike keywords in any language.
+ */
+export async function fetchNmbsEvents(): Promise<StrikeEvent[]> {
+  const disturbances = await fetchDisturbances();
   return disturbances
     .filter((d) => matchesStrikeKeywords(`${d.title} ${d.description}`))
-    .map((d) => ({
-      externalId: `nmbs-${d.id}`,
-      source: "nmbs" as const,
-      severity: "strike" as const,
-      title: d.title,
-      description: d.description,
-      link: d.link || null,
-      startsAt: d.timestamp ? new Date(Number(d.timestamp) * 1000).toISOString() : null,
-      language: "en" as const,
-    }));
+    .map((d) => toEvent(d, "strike"));
+}
+
+/** iRail tags scheduled engineering works separately (type: "planned") from unplanned disturbances. */
+export async function fetchNmbsConstructionEvents(): Promise<StrikeEvent[]> {
+  const disturbances = await fetchDisturbances();
+  return disturbances.filter((d) => d.type === "planned").map((d) => toEvent(d, "construction"));
 }

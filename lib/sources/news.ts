@@ -26,7 +26,8 @@ function stableIdFor(item: { link?: string; guid?: string; title?: string }): st
 
 /** Scans all configured Belgian news feeds for items matching the given keyword filter. */
 export async function scanNewsFeeds(
-  filter: (text: string) => boolean = matchesStrikeKeywords
+  filter: (text: string) => boolean = matchesStrikeKeywords,
+  category: StrikeEvent["category"] = "strike"
 ): Promise<StrikeEvent[]> {
   const results = await Promise.allSettled(
     FEEDS.map(async (feed) => {
@@ -36,7 +37,7 @@ export async function scanNewsFeeds(
         .map((item): StrikeEvent => ({
           externalId: `news-${stableIdFor(item)}`,
           source: "news",
-          severity: "strike",
+          category,
           title: item.title ?? "(untitled)",
           description: item.contentSnippet ?? item.content ?? "",
           link: item.link ?? null,

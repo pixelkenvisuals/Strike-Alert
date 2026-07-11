@@ -1,7 +1,7 @@
 "use client";
 
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { NotificationButton } from "./NotificationButton";
+import { NotificationsSection } from "./NotificationsSection";
 import { StatusDashboard } from "./StatusDashboard";
 import { useLanguage } from "./LanguageProvider";
 
@@ -16,7 +16,7 @@ export default function Home() {
           <p className="text-sm text-zinc-500">{t("tagline")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <NotificationButton />
+          <NotificationsSection />
           <LanguageSwitcher />
         </div>
       </header>

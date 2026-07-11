@@ -1,12 +1,12 @@
 export type Source = "stib" | "nmbs" | "airport" | "news";
 
-export type Severity = "info" | "disruption" | "strike";
+export type Category = "strike" | "construction";
 
 export interface StrikeEvent {
   /** Stable identifier used to detect "is this new" — derived from source + title/date, not a DB row id. */
   externalId: string;
   source: Source;
-  severity: Severity;
+  category: Category;
   title: string;
   description: string;
   link: string | null;
