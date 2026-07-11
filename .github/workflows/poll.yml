@@ -10,9 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Hit the deployed poll endpoint
+        env:
+          POLL_URL: ${{ secrets.POLL_URL }}
         run: |
-          if [ -z "${{ secrets.POLL_URL }}" ]; then
+          # Strip any accidental whitespace/newlines/trailing slash from the secret value
+          url=$(echo -n "$POLL_URL" | tr -d '[:space:]')
+          url="${url%/}"
+          if [ -z "$url" ]; then
             echo "POLL_URL secret is not set — add it in this repo's Settings > Secrets and variables > Actions."
             exit 1
           fi
-          curl -sf "${{ secrets.POLL_URL }}/api/cron/poll"
+          echo "Polling: $url/api/cron/poll"
+          curl -sf "$url/api/cron/poll"
