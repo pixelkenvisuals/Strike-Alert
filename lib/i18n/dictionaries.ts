@@ -1,0 +1,70 @@
+export type Locale = "en" | "nl" | "fr";
+
+export const LOCALES: Locale[] = ["en", "nl", "fr"];
+
+export const dictionaries: Record<Locale, Record<string, string>> = {
+  en: {
+    appTitle: "Strike Alert Belgium",
+    tagline: "Live strike tracking for STIB, NMBS/SNCB and Brussels Airport",
+    sourceStib: "STIB / MIVB",
+    sourceNmbs: "NMBS / SNCB",
+    sourceAirport: "Brussels Airport",
+    sourceNews: "News early warning",
+    statusClear: "No strikes reported",
+    statusActive: "active strike report(s)",
+    enableNotifications: "Enable notifications",
+    disableNotifications: "Disable notifications",
+    notificationsEnabled: "Notifications enabled",
+    notificationsBlocked: "Notifications are blocked in your browser settings",
+    notificationsUnsupported: "Push notifications aren't supported in this browser",
+    lastUpdated: "Last updated",
+    refresh: "Refresh now",
+    noEventsYet: "No events recorded yet — run a poll to fetch the latest data.",
+    firstSeen: "First seen",
+    readMore: "Read source",
+  },
+  nl: {
+    appTitle: "Stakingsalarm België",
+    tagline: "Live stakingsopvolging voor STIB, NMBS en Brussels Airport",
+    sourceStib: "STIB / MIVB",
+    sourceNmbs: "NMBS / SNCB",
+    sourceAirport: "Brussels Airport",
+    sourceNews: "Vroegtijdige waarschuwing (nieuws)",
+    statusClear: "Geen stakingen gemeld",
+    statusActive: "actieve stakingsmelding(en)",
+    enableNotifications: "Meldingen inschakelen",
+    disableNotifications: "Meldingen uitschakelen",
+    notificationsEnabled: "Meldingen ingeschakeld",
+    notificationsBlocked: "Meldingen zijn geblokkeerd in je browserinstellingen",
+    notificationsUnsupported: "Pushmeldingen worden niet ondersteund in deze browser",
+    lastUpdated: "Laatst bijgewerkt",
+    refresh: "Nu vernieuwen",
+    noEventsYet: "Nog geen gebeurtenissen geregistreerd — voer een poll uit om de laatste gegevens op te halen.",
+    firstSeen: "Eerst gezien",
+    readMore: "Bron bekijken",
+  },
+  fr: {
+    appTitle: "Alerte Grève Belgique",
+    tagline: "Suivi en direct des grèves STIB, NMBS/SNCB et Brussels Airport",
+    sourceStib: "STIB / MIVB",
+    sourceNmbs: "NMBS / SNCB",
+    sourceAirport: "Brussels Airport",
+    sourceNews: "Alerte précoce (actualités)",
+    statusClear: "Aucune grève signalée",
+    statusActive: "signalement(s) de grève actif(s)",
+    enableNotifications: "Activer les notifications",
+    disableNotifications: "Désactiver les notifications",
+    notificationsEnabled: "Notifications activées",
+    notificationsBlocked: "Les notifications sont bloquées dans les paramètres de votre navigateur",
+    notificationsUnsupported: "Les notifications push ne sont pas prises en charge par ce navigateur",
+    lastUpdated: "Dernière mise à jour",
+    refresh: "Actualiser maintenant",
+    noEventsYet: "Aucun événement enregistré pour l'instant — lancez une actualisation pour récupérer les dernières données.",
+    firstSeen: "Première détection",
+    readMore: "Voir la source",
+  },
+};
+
+export function translate(locale: Locale, key: string): string {
+  return dictionaries[locale][key] ?? dictionaries.en[key] ?? key;
+}
