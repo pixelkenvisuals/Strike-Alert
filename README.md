@@ -111,3 +111,23 @@ and delete the Startup shortcut if you'd rather not run a redundant local copy.
 - No third-party accounts are required for push notifications itself (Firebase,
   OneSignal, etc.) — VAPID keys are self-generated; the only accounts involved are
   Vercel (hosting + Postgres) and GitHub (code + scheduled polling), both free tier.
+
+## Colour Partner (offline colour tool)
+
+A separate, standalone mini-app lives in `public/colors/` — plain HTML/JS, no build step,
+unrelated to the strike tracker. Pick a colour and it shows its complementary,
+split-complementary, triadic, tertiary-neighbour (±30°) and square partners, on either the
+additive light (RGB) wheel or the traditional paint (RYB) wheel, with hex, console hue,
+RGB %, RGBW % and CMY % for each.
+
+- Open **https://strike-alert.vercel.app/colors/index.html** once, then "Add to Home
+  Screen". Its own service worker (`public/colors/sw.js`, scoped to `/colors/`) caches
+  everything, so it works with no signal afterwards.
+- When changing any file in `public/colors/`, bump `VERSION` in `public/colors/sw.js` so
+  installed copies pick up the update.
+- **Android APK:** `android/` wraps the same files in a native WebView app (no internet
+  permission needed). `.github/workflows/android.yml` builds it on GitHub Actions whenever
+  `public/colors/` or `android/` changes, and publishes `ColourPartner.apk` to the
+  **"Colour Partner (latest)"** release. Open that release on your phone, download the APK,
+  and allow "install unknown apps" when prompted. Builds are signed with the committed
+  `android/app/colour-partner.keystore`, so new versions install over old ones.

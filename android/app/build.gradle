@@ -1,0 +1,45 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "be.pixelken.colourpartner"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "be.pixelken.colourpartner"
+        minSdk 24
+        // 34 keeps the classic status bar; 35 forces edge-to-edge drawing on Android 15+
+        targetSdk 34
+        versionCode Integer.parseInt(System.getenv("GITHUB_RUN_NUMBER") ?: "1")
+        versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+    }
+
+    signingConfigs {
+        // Fixed key committed to the repo so every build can install over the previous one.
+        // It only signs this personal sideloaded app; it is not a secret.
+        shared {
+            storeFile file("colour-partner.keystore")
+            storePassword "colourpartner"
+            keyAlias "colourpartner"
+            keyPassword "colourpartner"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.shared
+        }
+    }
+
+    // The web app in public/colors is the whole UI; ship it as-is
+    sourceSets {
+        main.assets.srcDirs = ["../../public/colors"]
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

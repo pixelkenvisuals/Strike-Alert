@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Colour Partner</title>
+<meta name="description" content="Pick a colour, get its complementary, triadic and tertiary partners. Works offline.">
+<meta name="theme-color" content="#0f0f12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Colours">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<style>
+  :root {
+    --bg: #0f0f12;
+    --panel: #18181d;
+    --panel-2: #212128;
+    --line: #2c2c35;
+    --text: #ececf1;
+    --muted: #9a9aa8;
+    --accent: #ffffff;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Night mode: dims the whole UI for dark venues / during a show */
+  body.night { filter: brightness(0.55); }
+  main { max-width: 760px; margin: 0 auto; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 16px 0 8px;
+  }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .icon-btn {
+    background: var(--panel); border: 1px solid var(--line); color: var(--text);
+    border-radius: 10px; padding: 8px 12px; font: inherit; font-size: 13px; cursor: pointer;
+  }
+
+  .seg {
+    display: grid; grid-template-columns: 1fr 1fr; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin: 8px 0 6px;
+  }
+  .seg button {
+    background: none; border: 0; color: var(--muted); font: inherit; font-weight: 600;
+    padding: 10px 8px; border-radius: 9px; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--panel-2); color: var(--text); }
+  .hint { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
+
+  .picker {
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px;
+  }
+  @media (min-width: 640px) { .picker { grid-template-columns: 280px minmax(0, 1fr); align-items: center; } }
+  .wheel-wrap { position: relative; width: 100%; max-width: 280px; margin: 0 auto; aspect-ratio: 1; touch-action: none; }
+  canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
+  .base-dot {
+    position: absolute; inset: 31%; border-radius: 50%;
+    border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--line);
+    display: grid; place-items: center; text-align: center; pointer-events: none;
+    font-size: 12px; font-weight: 600;
+  }
+
+  .controls { display: grid; gap: 14px; }
+  .row { display: grid; gap: 6px; }
+  .row label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+  .row label output { color: var(--text); font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; height: 28px; margin: 0; -webkit-appearance: none; appearance: none; background: transparent; }
+  input[type=range]::-webkit-slider-runnable-track { height: 12px; border-radius: 6px; background: var(--track, var(--panel-2)); border: 1px solid var(--line); }
+  input[type=range]::-moz-range-track { height: 12px; border-radius: 6px; background: var(--track, var(--panel-2)); border: 1px solid var(--line); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -7px; border-radius: 50%; background: #fff; border: 2px solid #000; }
+  input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid #000; }
+
+  .hexrow { display: flex; gap: 8px; }
+  .hexrow input[type=text] {
+    flex: 1; min-width: 0; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 10px; padding: 10px 12px; font: 600 16px ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase;
+  }
+  .hexrow input[type=color] { width: 48px; height: 44px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); padding: 3px; }
+
+  .quick { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; }
+  .quick button { aspect-ratio: 1; border: 0; border-radius: 6px; cursor: pointer; padding: 0; }
+
+  section.scheme { margin-top: 18px; }
+  .scheme-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .scheme-head p { margin: 0 0 10px; color: var(--muted); font-size: 12px; text-align: right; }
+  .swatches { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 480px) { .swatches[style*="--n: 4"] { --n: 2 !important; } }
+  .sw {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; display: flex; flex-direction: column; text-align: left;
+    color: inherit; font: inherit; padding: 0; cursor: pointer;
+  }
+  .sw .chip { height: 84px; position: relative; }
+  .sw .chip span {
+    position: absolute; left: 8px; top: 8px; font-size: 11px; font-weight: 700;
+    padding: 2px 7px; border-radius: 999px; background: rgba(0,0,0,.45); color: #fff;
+  }
+  .sw .info { padding: 8px 10px 10px; display: grid; gap: 2px; }
+  .sw .name { font-weight: 650; }
+  .sw .vals { font: 11px/1.5 ui-monospace, Menlo, Consolas, monospace; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  footer { color: var(--muted); font-size: 12px; margin-top: 28px; line-height: 1.6; }
+  footer p { margin: 0 0 8px; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+    background: #fff; color: #000; padding: 10px 16px; border-radius: 999px; font-weight: 600; font-size: 14px;
+    opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .preview {
+    position: fixed; inset: 0; display: none; z-index: 10; background: #000;
+  }
+  .preview.open { display: flex; flex-direction: column; }
+  .preview div { flex: 1; display: flex; align-items: flex-end; padding: 12px 16px; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,.6); color: #fff; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Colour Partner</h1>
+    <button class="icon-btn" id="nightBtn" type="button" aria-pressed="false">Night mode</button>
+  </header>
+
+  <div class="seg" role="group" aria-label="Colour wheel">
+    <button type="button" data-mode="rgb" aria-pressed="true">Light (RGB)</button>
+    <button type="button" data-mode="ryb" aria-pressed="false">Paint (RYB)</button>
+  </div>
+  <p class="hint" id="modeHint"></p>
+
+  <div class="picker">
+    <div class="wheel-wrap" id="wheelWrap">
+      <canvas id="wheel" width="560" height="560" aria-label="Colour wheel, tap to choose a hue"></canvas>
+      <div class="base-dot" id="baseDot"></div>
+    </div>
+    <div class="controls">
+      <div class="row">
+        <label for="hue">Hue <output id="hueOut"></output></label>
+        <input type="range" id="hue" min="0" max="359" step="1">
+      </div>
+      <div class="row">
+        <label for="sat">Saturation <output id="satOut"></output></label>
+        <input type="range" id="sat" min="0" max="100" step="1">
+      </div>
+      <div class="row">
+        <label for="val">Brightness <output id="valOut"></output></label>
+        <input type="range" id="val" min="0" max="100" step="1">
+      </div>
+      <div class="hexrow">
+        <input type="text" id="hex" inputmode="text" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex colour">
+        <input type="color" id="native" aria-label="System colour picker">
+      </div>
+      <div class="quick" id="quick" aria-label="Quick picks"></div>
+    </div>
+  </div>
+
+  <div id="schemes"></div>
+
+  <footer>
+    <p><b>Tap a swatch</b> to copy its hex. <b>Long-press</b> (or double-click) a swatch to make it your new base colour. <b>Preview</b> shows a scheme full screen.</p>
+    <p><b>Light (RGB)</b> is the additive wheel your fixtures and console use — red's complement is cyan. <b>Paint (RYB)</b> is the traditional art-school wheel — red's complement is green. Hue degrees shown are always the RGB/console hue.</p>
+    <p><b>RGBW</b> moves the part all three channels share onto the white emitter. <b>CMY</b> is for subtractive fixtures with colour flags: 100% = flag fully in.</p>
+    <p>Works offline once loaded. Add it to your home screen to use it like an app.</p>
+  </footer>
+</main>
+
+<div class="preview" id="preview" role="dialog" aria-label="Full screen preview"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  // ---------- colour maths ----------
+  const mod = (n, m) => ((n % m) + m) % m;
+
+  function hsvToRgb(h, s, v) {
+    s /= 100; v /= 100;
+    const f = (n) => {
+      const k = mod(n + h / 60, 6);
+      return v - v * s * Math.max(0, Math.min(k, 4 - k, 1));
+    };
+    return [f(5), f(3), f(1)].map((x) => Math.round(x * 255));
+  }
+
+  function rgbToHsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    let h = 0;
+    if (d) {
+      if (max === r) h = 60 * mod((g - b) / d, 6);
+      else if (max === g) h = 60 * ((b - r) / d + 2);
+      else h = 60 * ((r - g) / d + 4);
+    }
+    return [Math.round(h) % 360, Math.round(max ? (d / max) * 100 : 0), Math.round(max * 100)];
+  }
+
+  const toHex = (rgb) => "#" + rgb.map((x) => x.toString(16).padStart(2, "0")).join("").toUpperCase();
+  function parseHex(str) {
+    let s = str.trim().replace(/^#/, "");
+    if (/^[0-9a-f]{3}$/i.test(s)) s = s.split("").map((c) => c + c).join("");
+    if (!/^[0-9a-f]{6}$/i.test(s)) return null;
+    return [0, 2, 4].map((i) => parseInt(s.slice(i, i + 2), 16));
+  }
+
+  // Traditional painter's (RYB) wheel <-> RGB hue. Pairs are [ryb°, rgb°]:
+  // red, orange, yellow, green, blue, violet.
+  const RYB_STOPS = [[0, 0], [60, 30], [120, 60], [180, 120], [240, 220], [300, 280], [360, 360]];
+  function lerpStops(x, from, to) {
+    x = mod(x, 360);
+    for (let i = 1; i < RYB_STOPS.length; i++) {
+      const a = RYB_STOPS[i - 1], b = RYB_STOPS[i];
+      if (x <= b[from]) return a[to] + ((x - a[from]) / (b[from] - a[from])) * (b[to] - a[to]);
+    }
+    return x;
+  }
+  const rybToRgbHue = (x) => mod(lerpStops(x, 0, 1), 360);
+  const rgbToRybHue = (x) => mod(lerpStops(x, 1, 0), 360);
+
+  // Wheel angle <-> real (RGB) hue for the active mode
+  const toWheel = (rgbHue) => (state.mode === "ryb" ? rgbToRybHue(rgbHue) : rgbHue);
+  const fromWheel = (angle) => (state.mode === "ryb" ? rybToRgbHue(angle) : mod(angle, 360));
+  const rotate = (rgbHue, deg) => Math.round(fromWheel(toWheel(rgbHue) + deg)) % 360;
+
+  const NAMES = {
+    rgb: ["Red", "Orange", "Yellow", "Chartreuse", "Green", "Spring green", "Cyan", "Azure", "Blue", "Violet", "Magenta", "Rose"],
+    ryb: ["Red", "Red-orange", "Orange", "Yellow-orange", "Yellow", "Yellow-green", "Green", "Blue-green", "Blue", "Blue-violet", "Violet", "Red-violet"],
+  };
+
+  function colourName(rgbHue, s, v) {
+    if (v < 8) return "Black";
+    if (s < 8) return v > 92 ? "White" : "Grey";
+    const slot = Math.round(toWheel(rgbHue) / 30) % 12;
+    let name = NAMES[state.mode][slot];
+    if (s < 40) name = "Pale " + name.toLowerCase();
+    else if (v < 45) name = "Deep " + name.toLowerCase();
+    return name;
+  }
+
+  // ---------- state ----------
+  const state = { mode: "rgb", h: 200, s: 100, v: 100, night: false };
+  try {
+    const saved = JSON.parse(localStorage.getItem("colour-partner") || "null");
+    if (saved) Object.assign(state, saved);
+  } catch (e) {}
+  const save = () => { try { localStorage.setItem("colour-partner", JSON.stringify(state)); } catch (e) {} };
+
+  // ---------- elements ----------
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("wheel"), ctx = canvas.getContext("2d");
+  const hue = $("hue"), sat = $("sat"), val = $("val"), hex = $("hex"), native = $("native");
+
+  const SCHEMES = [
+    { id: "comp", title: "Complementary", note: "opposite · 180°", offsets: [0, 180] },
+    { id: "split", title: "Split complementary", note: "beside the opposite · ±150°", offsets: [0, 150, 210] },
+    { id: "triad", title: "Triadic", note: "evenly spaced · 120°", offsets: [0, 120, 240] },
+    { id: "tert", title: "Tertiary neighbours", note: "in-between colours · ±30°", offsets: [-30, 0, 30] },
+    { id: "square", title: "Square (tetradic)", note: "four corners · 90°", offsets: [0, 90, 180, 270] },
+  ];
+
+  const MODE_HINT = {
+    rgb: "Additive light wheel — what your LED fixtures mix. Red ↔ cyan, blue ↔ amber/yellow.",
+    ryb: "Traditional painter's wheel — red ↔ green, blue ↔ orange, yellow ↔ violet.",
+  };
+
+  // ---------- wheel ----------
+  const W = canvas.width, C = W / 2, R_OUT = W / 2 - 6, R_IN = R_OUT * 0.62;
+  let ringCache = null, ringMode = null;
+
+  function drawRing() {
+    const off = document.createElement("canvas");
+    off.width = off.height = W;
+    const o = off.getContext("2d");
+    for (let a = 0; a < 360; a += 0.5) {
+      const start = ((a - 90 - 0.6) * Math.PI) / 180, end = ((a - 90 + 0.6) * Math.PI) / 180;
+      o.beginPath();
+      o.arc(C, C, R_OUT, start, end);
+      o.arc(C, C, R_IN, end, start, true);
+      o.closePath();
+      o.fillStyle = `hsl(${fromWheel(a)} 100% 50%)`;
+      o.fill();
+    }
+    // 12-slot tick marks
+    o.strokeStyle = "rgba(0,0,0,.35)";
+    o.lineWidth = 2;
+    for (let i = 0; i < 12; i++) {
+      const t = ((i * 30 - 90) * Math.PI) / 180;
+      o.beginPath();
+      o.moveTo(C + Math.cos(t) * R_IN, C + Math.sin(t) * R_IN);
+      o.lineTo(C + Math.cos(t) * (R_IN + 14), C + Math.sin(t) * (R_IN + 14));
+      o.stroke();
+    }
+    ringCache = off; ringMode = state.mode;
+  }
+
+  function point(angle, r) {
+    const t = ((angle - 90) * Math.PI) / 180;
+    return [C + Math.cos(t) * r, C + Math.sin(t) * r];
+  }
+
+  function drawWheel(markerHues) {
+    if (ringMode !== state.mode) drawRing();
+    ctx.clearRect(0, 0, W, W);
+    ctx.drawImage(ringCache, 0, 0);
+    const rMid = (R_OUT + R_IN) / 2;
+    // connecting lines
+    if (markerHues.length > 1) {
+      ctx.beginPath();
+      markerHues.forEach((h, i) => {
+        const [x, y] = point(toWheel(h), R_IN - 4);
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      });
+      if (markerHues.length > 2) ctx.closePath();
+      ctx.strokeStyle = "rgba(255,255,255,.55)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+    markerHues.forEach((h, i) => {
+      const [x, y] = point(toWheel(h), rMid);
+      ctx.beginPath();
+      ctx.arc(x, y, i === 0 ? 20 : 13, 0, Math.PI * 2);
+      ctx.fillStyle = `hsl(${h} 100% 50%)`;
+      ctx.fill();
+      ctx.lineWidth = i === 0 ? 5 : 4;
+      ctx.strokeStyle = "#fff";
+      ctx.stroke();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "#000";
+      ctx.stroke();
+    });
+  }
+
+  let dragging = false;
+  function pickFromPointer(e) {
+    const r = canvas.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width) * W - C;
+    const y = ((e.clientY - r.top) / r.height) * W - C;
+    const angle = mod((Math.atan2(y, x) * 180) / Math.PI + 90, 360);
+    state.h = Math.round(fromWheel(angle)) % 360;
+    render();
+  }
+  canvas.addEventListener("pointerdown", (e) => {
+    const r = canvas.getBoundingClientRect();
+    const dx = e.clientX - r.left - r.width / 2, dy = e.clientY - r.top - r.height / 2;
+    const dist = Math.hypot(dx, dy) / (r.width / 2);
+    if (dist < 0.5) return; // centre preview, not the ring
+    dragging = true;
+    canvas.setPointerCapture(e.pointerId);
+    pickFromPointer(e);
+  });
+  canvas.addEventListener("pointermove", (e) => dragging && pickFromPointer(e));
+  canvas.addEventListener("pointerup", () => { dragging = false; save(); });
+  canvas.addEventListener("pointercancel", () => { dragging = false; });
+
+  // ---------- controls ----------
+  hue.addEventListener("input", () => { state.h = +hue.value; render(); });
+  sat.addEventListener("input", () => { state.s = +sat.value; render(); });
+  val.addEventListener("input", () => { state.v = +val.value; render(); });
+  [hue, sat, val].forEach((el) => el.addEventListener("change", save));
+
+  function setFromRgb(rgb) {
+    const [h, s, v] = rgbToHsv(...rgb);
+    // keep the hue when picking a grey so the wheel doesn't jump to red
+    if (s > 0) state.h = h;
+    state.s = s; state.v = v;
+    render(); save();
+  }
+  hex.addEventListener("input", () => {
+    const rgb = parseHex(hex.value);
+    if (rgb) { hexEditing = true; setFromRgb(rgb); hexEditing = false; }
+  });
+  hex.addEventListener("blur", render);
+  native.addEventListener("input", () => setFromRgb(parseHex(native.value)));
+
+  const quick = $("quick");
+  function buildQuick() {
+    quick.innerHTML = "";
+    for (let i = 0; i < 12; i++) {
+      const h = Math.round(fromWheel(i * 30)) % 360;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.style.background = `hsl(${h} 100% 50%)`;
+      b.title = b.ariaLabel = NAMES[state.mode][i];
+      b.addEventListener("click", () => { state.h = h; state.s = 100; state.v = 100; render(); save(); });
+      quick.appendChild(b);
+    }
+  }
+
+  document.querySelectorAll(".seg button").forEach((b) =>
+    b.addEventListener("click", () => {
+      state.mode = b.dataset.mode;
+      buildQuick(); render(); save();
+    })
+  );
+
+  $("nightBtn").addEventListener("click", () => { state.night = !state.night; render(); save(); });
+
+  // ---------- toast / copy ----------
+  let toastTimer;
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 1400);
+  }
+  async function copy(text) {
+    // Native clipboard when running inside the Android app
+    if (window.AndroidBridge) { window.AndroidBridge.copy(text); toast(`Copied ${text}`); return; }
+    try { await navigator.clipboard.writeText(text); toast(`Copied ${text}`); }
+    catch (e) { toast(text); }
+  }
+
+  // ---------- full-screen preview ----------
+  const preview = $("preview");
+  function openPreview(colours) {
+    preview.innerHTML = "";
+    colours.forEach((c) => {
+      const d = document.createElement("div");
+      d.style.background = c.hex;
+      d.textContent = `${c.name} · ${c.hex}`;
+      preview.appendChild(d);
+    });
+    preview.classList.add("open");
+  }
+  preview.addEventListener("click", () => preview.classList.remove("open"));
+  // Called by the Android back button; true if it closed something
+  window.closePreview = () => preview.classList.contains("open") && !preview.classList.remove("open");
+  document.addEventListener("keydown", (e) => e.key === "Escape" && preview.classList.remove("open"));
+
+  // ---------- rendering ----------
+  function describe(h) {
+    const rgb = hsvToRgb(h, state.s, state.v);
+    return { h, rgb, hex: toHex(rgb), name: colourName(h, state.s, state.v) };
+  }
+
+  function swatch(c, label) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "sw";
+    const pct = c.rgb.map((x) => Math.round((x / 255) * 100));
+    const cmy = pct.map((x) => 100 - x);
+    // RGBW: the white emitter takes over the part all three channels share
+    const w = Math.min(...pct);
+    const rgbw = [...pct.map((x) => x - w), w];
+    b.innerHTML = `
+      <div class="chip" style="background:${c.hex}"><span>${label}</span></div>
+      <div class="info">
+        <div class="name">${c.name}</div>
+        <div class="vals">${c.hex}<br>Hue ${c.h}°<br>RGB ${pct.join("/")}%<br>RGBW ${rgbw.join("/")}%<br>CMY ${cmy.join("/")}%</div>
+      </div>`;
+    b.title = "Tap to copy · long-press to use as base";
+    let pressTimer, longPressed = false;
+    const makeBase = () => { state.h = c.h; render(); save(); window.scrollTo({ top: 0, behavior: "smooth" }); toast(`Base: ${c.name}`); };
+    b.addEventListener("pointerdown", () => { longPressed = false; pressTimer = setTimeout(() => { longPressed = true; makeBase(); }, 550); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, () => clearTimeout(pressTimer)));
+    b.addEventListener("contextmenu", (e) => e.preventDefault());
+    b.addEventListener("click", () => { if (!longPressed) copy(c.hex); });
+    b.addEventListener("dblclick", makeBase);
+    return b;
+  }
+
+  let activeScheme = "comp", hexEditing = false;
+  const schemesEl = $("schemes");
+
+  function render() {
+    document.body.classList.toggle("night", state.night);
+    $("nightBtn").setAttribute("aria-pressed", state.night);
+    document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode === state.mode));
+    $("modeHint").textContent = MODE_HINT[state.mode];
+
+    const base = describe(state.h);
+    hue.value = state.h; sat.value = state.s; val.value = state.v;
+    $("hueOut").textContent = `${state.h}°`;
+    $("satOut").textContent = `${state.s}%`;
+    $("valOut").textContent = `${state.v}%`;
+    hue.style.setProperty("--track", `linear-gradient(90deg, ${Array.from({ length: 13 }, (_, i) => `hsl(${i * 30} 100% 50%)`).join(",")})`);
+    sat.style.setProperty("--track", `linear-gradient(90deg, ${toHex(hsvToRgb(state.h, 0, state.v))}, ${toHex(hsvToRgb(state.h, 100, state.v))})`);
+    val.style.setProperty("--track", `linear-gradient(90deg, #000, ${toHex(hsvToRgb(state.h, state.s, 100))})`);
+    if (!hexEditing) hex.value = base.hex;
+    native.value = base.hex.toLowerCase();
+
+    const dot = $("baseDot");
+    dot.style.background = base.hex;
+    dot.style.color = state.v > 60 && (base.rgb[0] * 0.299 + base.rgb[1] * 0.587 + base.rgb[2] * 0.114) > 150 ? "#000" : "#fff";
+    dot.textContent = base.name;
+
+    schemesEl.innerHTML = "";
+    let wheelMarkers = [state.h];
+    SCHEMES.forEach((sc) => {
+      const sec = document.createElement("section");
+      sec.className = "scheme";
+      sec.innerHTML = `<div class="scheme-head"><h2>${sc.title}</h2><p>${sc.note}</p></div>`;
+      const grid = document.createElement("div");
+      grid.className = "swatches";
+      grid.style.setProperty("--n", sc.offsets.length);
+      const colours = sc.offsets.map((o) => describe(rotate(state.h, o)));
+      colours.forEach((c, i) => grid.appendChild(swatch(c, sc.offsets[i] === 0 ? "Base" : `${sc.offsets[i] > 0 ? "+" : ""}${sc.offsets[i]}°`)));
+      sec.appendChild(grid);
+
+      const actions = document.createElement("div");
+      actions.style.cssText = "display:flex;gap:8px;margin-top:8px";
+      const show = document.createElement("button");
+      show.className = "icon-btn"; show.type = "button";
+      show.textContent = activeScheme === sc.id ? "Shown on wheel" : "Show on wheel";
+      show.addEventListener("click", () => { activeScheme = sc.id; render(); });
+      const prev = document.createElement("button");
+      prev.className = "icon-btn"; prev.type = "button"; prev.textContent = "Preview";
+      prev.addEventListener("click", () => openPreview(colours));
+      actions.append(show, prev);
+      sec.appendChild(actions);
+      schemesEl.appendChild(sec);
+
+      if (sc.id === activeScheme) {
+        // base first so it gets the big marker; keep wheel order for the outline
+        const hs = sc.offsets.map((o) => rotate(state.h, o));
+        wheelMarkers = [state.h, ...hs.filter((h, i) => sc.offsets[i] !== 0)];
+        if (sc.id === "tert") wheelMarkers = [state.h, hs[0], hs[2]];
+      }
+    });
+    drawWheel(wheelMarkers);
+  }
+
+  buildQuick();
+  render();
+
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  }
+})();
+</script>
+</body>
+</html>

@@ -46,3 +46,9 @@ next-env.d.ts
 
 # local Claude Code session config (machine-specific)
 /.claude/
+
+# android build output
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
