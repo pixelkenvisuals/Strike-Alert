@@ -96,6 +96,7 @@
   .swatches { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 8px; }
   @media (max-width: 480px) { .swatches[style*="--n: 4"] { --n: 2 !important; } }
   .sw {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
     overflow: hidden; display: flex; flex-direction: column; text-align: left;
     color: inherit; font: inherit; padding: 0; cursor: pointer;
@@ -170,6 +171,7 @@
   <footer>
     <p><b>Tap a swatch</b> to copy its hex. <b>Long-press</b> (or double-click) a swatch to make it your new base colour. <b>Preview</b> shows a scheme full screen.</p>
     <p><b>Light (RGB)</b> is the additive wheel your fixtures and console use — red's complement is cyan. <b>Paint (RYB)</b> is the traditional art-school wheel — red's complement is green. Hue degrees shown are always the RGB/console hue.</p>
+    <p><b>RGBW</b> moves the part all three channels share onto the white emitter. <b>CMY</b> is for subtractive fixtures with colour flags: 100% = flag fully in.</p>
     <p>Works offline once loaded. Add it to your home screen to use it like an app.</p>
   </footer>
 </main>
@@ -413,6 +415,8 @@
     toastTimer = setTimeout(() => t.classList.remove("show"), 1400);
   }
   async function copy(text) {
+    // Native clipboard when running inside the Android app
+    if (window.AndroidBridge) { window.AndroidBridge.copy(text); toast(`Copied ${text}`); return; }
     try { await navigator.clipboard.writeText(text); toast(`Copied ${text}`); }
     catch (e) { toast(text); }
   }
@@ -430,6 +434,8 @@
     preview.classList.add("open");
   }
   preview.addEventListener("click", () => preview.classList.remove("open"));
+  // Called by the Android back button; true if it closed something
+  window.closePreview = () => preview.classList.contains("open") && !preview.classList.remove("open");
   document.addEventListener("keydown", (e) => e.key === "Escape" && preview.classList.remove("open"));
 
   // ---------- rendering ----------
@@ -444,11 +450,14 @@
     b.className = "sw";
     const pct = c.rgb.map((x) => Math.round((x / 255) * 100));
     const cmy = pct.map((x) => 100 - x);
+    // RGBW: the white emitter takes over the part all three channels share
+    const w = Math.min(...pct);
+    const rgbw = [...pct.map((x) => x - w), w];
     b.innerHTML = `
       <div class="chip" style="background:${c.hex}"><span>${label}</span></div>
       <div class="info">
         <div class="name">${c.name}</div>
-        <div class="vals">${c.hex}<br>Hue ${c.h}°<br>RGB ${pct.join("/")}%<br>CMY ${cmy.join("/")}%</div>
+        <div class="vals">${c.hex}<br>Hue ${c.h}°<br>RGB ${pct.join("/")}%<br>RGBW ${rgbw.join("/")}%<br>CMY ${cmy.join("/")}%</div>
       </div>`;
     b.title = "Tap to copy · long-press to use as base";
     let pressTimer, longPressed = false;
@@ -525,7 +534,7 @@
   buildQuick();
   render();
 
-  if ("serviceWorker" in navigator) {
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
     window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
   }
 })();

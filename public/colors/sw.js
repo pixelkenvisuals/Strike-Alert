@@ -1,5 +1,5 @@
 // Offline cache for Colour Partner. Bump VERSION when any file below changes.
-const VERSION = "colour-partner-v1";
+const VERSION = "colour-partner-v2";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon.svg", "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
